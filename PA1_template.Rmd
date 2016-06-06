@@ -5,21 +5,91 @@ output:
     keep_md: true
 ---
 
+Code for reading needed libraries:
+
+```{r message = FALSE, warning = FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
 
 ## Loading and preprocessing the data
+``` {r }
+activityData <- read.csv("activity.csv")
 
+activityData$date <- as.Date(activityData$date, "%Y-%m-%d")
 
+```
 
 ## What is mean total number of steps taken per day?
+``` {r }
 
+dat <- aggregate(activityData[1],by=activityData[2],FUN=sum,na.rm=TRUE)
+
+hist(dat$steps,
+     breaks=20,
+     col = "green",
+     main = "Histogram of Total Number of Steps Taken each Day",
+     xlab = "Steps per Day")
+
+```
 
 
 ## What is the average daily activity pattern?
 
+``` {r }
 
+with(dat, mean(steps),na.rm=TRUE) # mean
+with(dat, median(steps),na.rm=TRUE) # median
+
+```
 
 ## Imputing missing values
 
+``` {r }
+
+nrow(activityData)        # total number of records
+
+sum(is.na(activityData))  # missing records
 
 
+library(plyr)
+   impute.mean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
+   activityData.impute <- ddply(activityData, ~interval, transform, steps = impute.mean(steps))
+   
+   activity.imp.dat <- aggregate(activityData.impute[1],activityData.impute[2],sum)
+
+hist(activity.imp.dat$steps,
+     breaks=20,
+     col = "green",
+     main = "Histogram of Total Number of Steps Taken per Day (Imputed Data)",
+     xlab = "Steps per Day") 
+
+
+mean(activity.imp.dat$steps)
+
+median(activity.imp.dat$steps)
+
+```
 ## Are there differences in activity patterns between weekdays and weekends?
+
+``` {r }
+day <- weekdays(activityData.impute$date)    #creating a vector day
+day <- ifelse(day %in% c("Sunday","Saturday"),"weekend", "weekday") # converting to weekday and weekend
+
+activity.impute <- cbind(activityData.impute,day) # adding the vector to dataframe
+
+
+library(ggplot2)
+activity.impute.interval <- aggregate(activity.impute[1],by= activity.impute[c(3,4)], FUN=mean,na.rm=TRUE)
+
+adata.impute.interval <- aggregate(activity.impute[1],
+                                   by=activity.impute[c(3,4)],
+                                   FUN=mean,
+                                   na.rm=TRUE)
+
+
+ggplot(activity.impute.interval, aes(x= interval , y= steps))+ geom_line()+facet_wrap(~day,nrow=2)
+
+
+```
